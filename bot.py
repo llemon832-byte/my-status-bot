@@ -10,7 +10,7 @@ from flask import Flask
 TOKEN = '8685131460:AAETnfmADzzhRAjD9mTosqtzYJb_x_cRAf8' 
 
 # Сюди вставте ID вашої групи (з мінусом)
-GROUP_ID = -1004481002817 
+GROUP_ID = -1004313121326 
 
 bot = telebot.TeleBot(TOKEN)
 stats_data = {}
