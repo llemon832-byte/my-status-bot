@@ -7,7 +7,7 @@ import os
 from flask import Flask
 
 # Сюди вставте токен, який дав @BotFather
-TOKEN = '8685131460:AAETnfmADzzhRAjD9mTosqtzYJb_x_cRAf8' 
+TOKEN = '8685131460:AAGfTPfn5V92_k7E--vg0NRt65MUV8PFjDw' 
 
 # Сюди вставте ID вашої групи (з мінусом)
 GROUP_ID = -1004313121326 
