@@ -4,13 +4,12 @@ import datetime
 import threading
 import time
 import os
+import html
 from flask import Flask
-from zoneinfo import ZoneInfo  # Бібліотека для роботи з часовими поясами
+from zoneinfo import ZoneInfo
 
-# Сюди вставте токен, який дав @BotFather
-TOKEN = '8685131460:AAGfTPfn5V92_k7E--vg0NRt65MUV8PFjDw' 
-
-# Сюди вставте ID вашої групи (з мінусом)
+# Нові дані, які ви надали
+TOKEN = '8685131460:AAGfTPfn5V92_k7E--vg0NRt65MUV8PFjDw'
 GROUP_ID = -1004313121326 
 
 bot = telebot.TeleBot(TOKEN)
@@ -26,11 +25,9 @@ STATUS_OPTIONS = [
     '🏠 Додому'
 ]
 
-# Функція, яка ЗАВЖДИ повертає точний київський час
 def get_kyiv_time():
     return datetime.datetime.now(ZoneInfo("Europe/Kyiv"))
 
-# Створюємо мікро-сайт для обходу обмежень безкоштовного хостингу
 app = Flask('')
 
 @app.route('/')
@@ -41,7 +38,7 @@ def run_web_server():
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
 
-# Автоочищення о 08:00 за КИЄВОМ
+# Автоочищення о 08:00 за Києвом
 def auto_clear():
     while True:
         now = get_kyiv_time()
@@ -54,7 +51,6 @@ def auto_clear():
             time.sleep(60)
         time.sleep(30)
 
-# Функція для гарного відображення часу
 def format_time(td):
     total_seconds = int(td.total_seconds())
     hours, remainder = divmod(total_seconds, 3600)
@@ -75,8 +71,9 @@ def send_welcome(message):
 @bot.message_handler(commands=['clear'])
 def clear_stats(message):
     stats_data.clear()
-    bot.send_message(message.chat.id, "🧹 Загальну статистику команди очищено вручну!")
+    bot.send_message(message.chat.id, "🧹 Загальну統計ку команди очищено вручну!")
 
+# Команда /stats на безпечному HTML
 @bot.message_handler(commands=['stats'])
 def show_stats(message):
     if not stats_data:
@@ -84,7 +81,7 @@ def show_stats(message):
         return
     
     now = get_kyiv_time()
-    text = "📊 **Загальна статистика команди:**\n"
+    text = "📊 <b>Загальна статистика команди:</b>\n"
     text += f"📅 Дата: {now.strftime('%d.%m.%Y')}\n"
     text += "────────────────────\n\n"
     
@@ -107,14 +104,17 @@ def show_stats(message):
             
         break_duration = format_time(total_break)
         
-        text += f"👤 **{data['name']}**\n"
+        # Безпечно екрануємо ім'я для HTML
+        safe_name = html.escape(data['name'])
+        
+        text += f"👤 <b>{safe_name}</b>\n"
         text += f"➡️ Прихід: {arr_time} | ⬅️ Ухід: {dep_time}\n"
         text += f"☕ На перервах: {break_duration}\n"
-        text += f"💼 **Чиста робота:** {work_duration}\n"
+        text += f"💼 <b>Чиста робота:</b> {work_duration}\n"
         text += f"📌 Статус: {data['last_status']}\n"
         text += "────────────────────\n"
         
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    bot.send_message(message.chat.id, text, parse_mode="HTML")
 
 @bot.message_handler(func=lambda message: message.text in STATUS_OPTIONS)
 def handle_status(message):
@@ -139,14 +139,22 @@ def handle_status(message):
     user['last_status'] = status
     user['last_time'] = now
     
+    # 1. Спочатку відповідаємо користувачу в приват
     try:
-        bot.send_message(GROUP_ID, f"🔔 **Статус:** {name} — {status}", parse_mode="Markdown")
-        bot.send_message(message.chat.id, f"Статус «{status}» надіслано в чат!")
+        bot.send_message(message.chat.id, f"Статус «{status}» прийнято!")
     except:
         pass
+
+    # 2. Потім надсилаємо повідомлення в групу
+    try:
+        safe_name = html.escape(name)
+        group_message = f"🔔 <b>Статус:</b> {safe_name} — {status}"
+        bot.send_message(GROUP_ID, group_message, parse_mode="HTML")
+    except Exception as e:
+        print(f"Помилка відправки в групу: {e}")
 
 if __name__ == '__main__':
     threading.Thread(target=run_web_server, daemon=True).start()
     threading.Thread(target=auto_clear, daemon=True).start()
-    print("Бот із фіксованим часовим поясом Києва запущено...")
+    print("Бот запущено з новим токеном...")
     bot.infinity_polling()
