@@ -71,7 +71,7 @@ def send_welcome(message):
 @bot.message_handler(commands=['clear'])
 def clear_stats(message):
     stats_data.clear()
-    bot.send_message(message.chat.id, "🧹 Загальну統計ку команди очищено вручну!")
+    bot.send_message(message.chat.id, "🧹 Загальну статистику команди очищено вручну!")
 
 # Команда /stats на безпечному HTML
 @bot.message_handler(commands=['stats'])
