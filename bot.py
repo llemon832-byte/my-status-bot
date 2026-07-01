@@ -16,13 +16,13 @@ bot = telebot.TeleBot(TOKEN)
 stats_data = {}
 
 STATUS_OPTIONS = [
-    '💼 Я бізнесмен', 
+    '💼 Я бізнесмен ', 
     '☕ Чіл 5 хв', 
     '☕ Отойшов 10 хв', 
     '☕ Перекур 15 хв', 
-    '☕ Хавать певно 30 хв', 
+    '☕ Хава ю?...Смачного 30 хв', 
     '🍲 Обід', 
-    '🏠 УРА до хати'
+    '🏠 Пісяти та спати'
 ]
 
 def get_kyiv_time():
@@ -90,7 +90,7 @@ def show_stats(message):
         dep_time = data['departure'].strftime('%H:%M') if data['departure'] else "На зміні"
         
         total_break = data['total_break']
-        if data['last_status'] in ['☕ Перерва 5 хв', '☕ Перерва 10 хв', '☕ Перерва 15 хв', '☕ Перерва 30 хв', '🍲 Обід']:
+        if data['last_status'] in ['☕ Чіл 5 хв', '☕ Отойшов 10 хв', '☕ Перекур 15 хв', '☕ Хава ю?...Смачного 30 хв', '🍲 Обід']:
             total_break += (now - data['last_time'])
             
         if data['arrival']:
@@ -108,7 +108,7 @@ def show_stats(message):
         safe_name = html.escape(data['name'])
         
         text += f"👤 <b>{safe_name}</b>\n"
-        text += f"➡️ Прихід: {arr_time} | ⬅️ Ухід: {dep_time}\n"
+        text += f"➡️ Дотопав: {arr_time} | ⬅️ Утопав: {dep_time}\n"
         text += f"☕ Чілив: {break_duration}\n"
         text += f"💼 <b>Работал:</b> {work_duration}\n"
         text += f"📌 Статус: {data['last_status']}\n"
@@ -128,7 +128,7 @@ def handle_status(message):
         
     user = stats_data[user_id]
     
-    if user['last_status'] in ['☕ Перерва 5 хв', '☕ Перерва 10 хв', '☕ Перерва 15 хв', '☕ Перерва 30 хв', '🍲 Обід']:
+    if user['last_status'] in ['☕ Чіл 5 хв', '☕ Отойшов 10 хв', '☕ Перекур 15 хв', '☕ Хава ю?...Смачного 30 хв', '🍲 Обід']:
         user['total_break'] += (now - user['last_time'])
         
     if status == '💼 На роботі' and user['arrival'] is None: 
