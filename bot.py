@@ -45,7 +45,7 @@ def auto_clear():
         if now.hour == 8 and now.minute == 0:
             stats_data.clear()
             try:
-                bot.send_message(GROUP_ID, "🔄 Статистику автоматично очищено. Почався новий робочий день!")
+                bot.send_message(GROUP_ID, "🔄 Статистику автоматично очищено. До роботи!")
             except:
                 pass
             time.sleep(60)
@@ -66,18 +66,18 @@ def send_welcome(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     buttons = [types.KeyboardButton(status) for status in STATUS_OPTIONS]
     markup.add(*buttons)
-    bot.send_message(message.chat.id, "Привіт! Обери свій статус:", reply_markup=markup)
+    bot.send_message(message.chat.id, "Сап салага, ну, вибирай:", reply_markup=markup)
 
 @bot.message_handler(commands=['clear'])
 def clear_stats(message):
     stats_data.clear()
-    bot.send_message(message.chat.id, "🧹 Загальну статистику команди очищено вручну!")
+    bot.send_message(message.chat.id, "🧹 Почистив історію в хром)")
 
 # Команда /stats на безпечному HTML
 @bot.message_handler(commands=['stats'])
 def show_stats(message):
     if not stats_data:
-        bot.send_message(message.chat.id, "📊 Статистика поки порожня.")
+        bot.send_message(message.chat.id, "📊 Бездельніки,ніц ще не зробили")
         return
     
     now = get_kyiv_time()
@@ -109,8 +109,8 @@ def show_stats(message):
         
         text += f"👤 <b>{safe_name}</b>\n"
         text += f"➡️ Прихід: {arr_time} | ⬅️ Ухід: {dep_time}\n"
-        text += f"☕ На перервах: {break_duration}\n"
-        text += f"💼 <b>Чиста робота:</b> {work_duration}\n"
+        text += f"☕ Чілив: {break_duration}\n"
+        text += f"💼 <b>Работал:</b> {work_duration}\n"
         text += f"📌 Статус: {data['last_status']}\n"
         text += "────────────────────\n"
         
@@ -148,7 +148,7 @@ def handle_status(message):
     # 2. Потім надсилаємо повідомлення в групу
     try:
         safe_name = html.escape(name)
-        group_message = f"🔔 <b>Статус:</b> {safe_name} — {status}"
+        group_message = f"🔔 <b>Муд:</b> {safe_name} — {status}"
         bot.send_message(GROUP_ID, group_message, parse_mode="HTML")
     except Exception as e:
         print(f"Помилка відправки в групу: {e}")
