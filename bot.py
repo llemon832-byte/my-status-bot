@@ -1,21 +1,17 @@
 import telebot
 from telebot import types
-import datetime
-import threading
-import time
 import os
 import html
 from flask import Flask
-from zoneinfo import ZoneInfo
+import threading
 
-# Ваші актуальні дані
+# Твої актуальні дані
 TOKEN = '8685131460:AAGfTPfn5V92_k7E--vg0NRt65MUV8PFjDw'
 GROUP_ID = -1004313121326 
 
 bot = telebot.TeleBot(TOKEN)
-stats_data = {}
 
-# Прибрано випадковий пробіл у кінці першої кнопки для стабільності
+# Твої фірмові кнопки
 STATUS_OPTIONS = [
     '💼 Я бізнесмен', 
     '☕ Чіл 5 хв', 
@@ -25,9 +21,6 @@ STATUS_OPTIONS = [
     '🍲 Обід', 
     '🏠 Пісяти та спати'
 ]
-
-def get_kyiv_time():
-    return datetime.datetime.now(ZoneInfo("Europe/Kyiv"))
 
 app = Flask('')
 
@@ -39,106 +32,85 @@ def run_web_server():
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
 
-# Автоочищення о 08:00 за Києвом
-def auto_clear():
-    while True:
-        now = get_kyiv_time()
-        if now.hour == 8 and now.minute == 0:
-            stats_data.clear()
-            try:
-                bot.send_message(GROUP_ID, "🔄 Статистику автоматично очищено. До роботи!")
-            except:
-                pass
-            time.sleep(60)
-        time.sleep(30)
-
-def format_time(td):
-    total_seconds = int(td.total_seconds())
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    parts = []
-    if hours > 0: parts.append(f"{hours} год")
-    if minutes > 0: parts.append(f"{minutes} хв")
-    if seconds > 0 or not parts: parts.append(f"{seconds} сек")
-    return " ".join(parts)
-
+# Команда /start (Запуск та виклик кнопок)
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     buttons = [types.KeyboardButton(status) for status in STATUS_OPTIONS]
     markup.add(*buttons)
-    bot.send_message(message.chat.id, "Сап салага, ну, вибирай:", reply_markup=markup)
+    bot.send_message(message.chat.id, "Сап салага, ну, вибирай або юзай команди з /help:", reply_markup=markup)
 
-@bot.message_handler(commands=['clear'])
-def clear_stats(message):
-    stats_data.clear()
-    bot.send_message(message.chat.id, "🧹 Почистив історію в хром)")
+# Нова команда /help (Інструкція для всіх)
+@bot.message_handler(commands=['help'])
+def send_help(message):
+    help_text = (
+        "📋 <b>Шпаргалка по командах бота:</b>\n\n"
+        "🚀 /start — Увімкнути бота та викликати кнопки статусів\n"
+        "ℹ️ /help — Показати цю довідку\n\n"
+        "⏳ <code>/late [твій текст]</code> — Сповістити групу про запізнення.\n"
+        "<i>Приклад: /late на 10 хв, пробки</i>\n\n"
+        "📊 <code>/report [твій текст]</code> — Надіслати швидкий звіт у групу.\n"
+        "<i>Приклад: /report Зробив завдання, клієнт задоволений</i>"
+    )
+    try:
+        bot.send_message(message.chat.id, help_text, parse_mode="HTML")
+    except:
+        pass
 
-# Команда /stats на безпечному HTML
-@bot.message_handler(commands=['stats'])
-def show_stats(message):
-    if not stats_data:
-        bot.send_message(message.chat.id, "📊 Бездельніки,ніц ще не зробили")
-        return
+# Нова команда /late (Сповіщення про запізнення)
+@bot.message_handler(commands=['late'])
+def handle_late(message):
+    name = f"@{message.from_user.username}" if message.from_user.username else f"{message.from_user.first_name} {message.from_user.last_name or ''}".strip()
+    safe_name = html.escape(name)
     
-    now = get_kyiv_time()
-    text = "📊 <b>Загальна статистика команди:</b>\n"
-    text += f"📅 Дата: {now.strftime('%d.%m.%Y')}\n"
-    text += "────────────────────\n\n"
+    # Отримуємо текст, який юзер написав після команди /late
+    args = message.text.split(maxsplit=1)
+    late_reason = args[1] if len(args) > 1 else "запізнюється (не вказав на скільки)"
+    safe_reason = html.escape(late_reason)
     
-    for user_id, data in stats_data.items():
-        arr_time = data['arrival'].strftime('%H:%M') if data['arrival'] else "Не відмітився"
-        dep_time = data['departure'].strftime('%H:%M') if data['departure'] else "На зміні"
-        
-        total_break = data['total_break']
-        if data['last_status'] in ['☕ Чіл 5 хв', '☕ Отойшов 10 хв', '☕ Перекур 15 хв', '☕ Хава ю?...Смачного 30 хв', '🍲 Обід']:
-            total_break += (now - data['last_time'])
-            
-        if data['arrival']:
-            end_point = data['departure'] if data['departure'] else now
-            total_elapsed = end_point - data['arrival']
-            pure_work = total_elapsed - total_break
-            if pure_work.total_seconds() < 0: pure_work = datetime.timedelta()
-            work_duration = format_time(pure_work)
-        else:
-            work_duration = "0 хв"
-            
-        break_duration = format_time(total_break)
-        
-        safe_name = html.escape(data['name'])
-        
-        text += f"👤 <b>{safe_name}</b>\n"
-        text += f"➡️ Дотопав: {arr_time} | ⬅️ Утопав: {dep_time}\n"
-        text += f"☕ Чілив: {break_duration}\n"
-        text += f"💼 <b>Работал:</b> {work_duration}\n"
-        text += f"📌 Статус: {data['last_status']}\n"
-        text += "────────────────────\n"
-        
-    bot.send_message(message.chat.id, text, parse_mode="HTML")
+    try:
+        bot.send_message(message.chat.id, "⏰ Сповіщення про запізнення надіслано в групу!")
+    except:
+        pass
 
+    try:
+        group_message = f"⏳ <b>Запізнення:</b> {safe_name} — {safe_reason}"
+        bot.send_message(GROUP_ID, group_message, parse_mode="HTML")
+    except Exception as e:
+        print(f"Помилка відправки в групу: {e}")
+
+# Нова команда /report (Швидкий звіт у групу)
+@bot.message_handler(commands=['report'])
+def handle_report(message):
+    name = f"@{message.from_user.username}" if message.from_user.username else f"{message.from_user.first_name} {message.from_user.last_name or ''}".strip()
+    safe_name = html.escape(name)
+    
+    # Отримуємо текст після команди /report
+    args = message.text.split(maxsplit=1)
+    
+    if len(args) > 1:
+        report_text = html.escape(args[1])
+        try:
+            bot.send_message(message.chat.id, "✅ Твій звіт успішно закинуто в групу!")
+        except:
+            pass
+        
+        try:
+            group_message = f"📋 <b>Швидкий звіт від:</b> {safe_name}\n────────────────────\n{report_text}"
+            bot.send_message(GROUP_ID, group_message, parse_mode="HTML")
+        except Exception as e:
+            print(f"Помилка відправки в групу: {e}")
+    else:
+        try:
+            bot.send_message(message.chat.id, "⚠️ Салага, ти забув написати текст звіту!\nПриклад: <code>/report Здав касу, все ок</code>", parse_mode="HTML")
+        except:
+            pass
+
+# Обробка натискання на звичайні кнопки статусів
 @bot.message_handler(func=lambda message: message.text in STATUS_OPTIONS)
 def handle_status(message):
-    user_id = message.from_user.id
     name = f"@{message.from_user.username}" if message.from_user.username else f"{message.from_user.first_name} {message.from_user.last_name or ''}".strip()
     status = message.text
-    now = get_kyiv_time()
-    
-    if user_id not in stats_data:
-        stats_data[user_id] = {'name': name, 'arrival': None, 'departure': None, 'total_break': datetime.timedelta(), 'last_status': None, 'last_time': now}
-        
-    user = stats_data[user_id]
-    
-    if user['last_status'] in ['☕ Чіл 5 хв', '☕ Отойшов 10 хв', '☕ Перекур 15 хв', '☕ Хава ю?...Смачного 30 хв', '🍲 Обід']:
-        user['total_break'] += (now - user['last_time'])
-        
-    # ТУТ БУЛИ ВИПРАВЛЕНІ НАЗВИ КНОПОК:
-    if status == '💼 Я бізнесмен' and user['arrival'] is None: 
-        user['arrival'] = now
-    elif status == '🏠 Пісяти та спати': 
-        user['departure'] = now
-        
-    user['last_status'] = status
-    user['last_time'] = now
     
     try:
         bot.send_message(message.chat.id, f"Статус «{status}» прийнято!")
@@ -154,6 +126,5 @@ def handle_status(message):
 
 if __name__ == '__main__':
     threading.Thread(target=run_web_server, daemon=True).start()
-    threading.Thread(target=auto_clear, daemon=True).start()
-    print("Бот запущено з оновленими назвами статусів...")
+    print("Ультра-заряджений бот сповіщень запущено...")
     bot.infinity_polling()
