@@ -8,15 +8,16 @@ import html
 from flask import Flask
 from zoneinfo import ZoneInfo
 
-# Нові дані, які ви надали
+# Ваші актуальні дані
 TOKEN = '8685131460:AAGfTPfn5V92_k7E--vg0NRt65MUV8PFjDw'
 GROUP_ID = -1004313121326 
 
 bot = telebot.TeleBot(TOKEN)
 stats_data = {}
 
+# Прибрано випадковий пробіл у кінці першої кнопки для стабільності
 STATUS_OPTIONS = [
-    '💼 Я бізнесмен ', 
+    '💼 Я бізнесмен', 
     '☕ Чіл 5 хв', 
     '☕ Отойшов 10 хв', 
     '☕ Перекур 15 хв', 
@@ -104,7 +105,6 @@ def show_stats(message):
             
         break_duration = format_time(total_break)
         
-        # Безпечно екрануємо ім'я для HTML
         safe_name = html.escape(data['name'])
         
         text += f"👤 <b>{safe_name}</b>\n"
@@ -131,21 +131,20 @@ def handle_status(message):
     if user['last_status'] in ['☕ Чіл 5 хв', '☕ Отойшов 10 хв', '☕ Перекур 15 хв', '☕ Хава ю?...Смачного 30 хв', '🍲 Обід']:
         user['total_break'] += (now - user['last_time'])
         
-    if status == '💼 На роботі' and user['arrival'] is None: 
+    # ТУТ БУЛИ ВИПРАВЛЕНІ НАЗВИ КНОПОК:
+    if status == '💼 Я бізнесмен' and user['arrival'] is None: 
         user['arrival'] = now
-    elif status == '🏠 Додому': 
+    elif status == '🏠 Пісяти та спати': 
         user['departure'] = now
         
     user['last_status'] = status
     user['last_time'] = now
     
-    # 1. Спочатку відповідаємо користувачу в приват
     try:
         bot.send_message(message.chat.id, f"Статус «{status}» прийнято!")
     except:
         pass
 
-    # 2. Потім надсилаємо повідомлення в групу
     try:
         safe_name = html.escape(name)
         group_message = f"🔔 <b>Муд:</b> {safe_name} — {status}"
@@ -156,5 +155,5 @@ def handle_status(message):
 if __name__ == '__main__':
     threading.Thread(target=run_web_server, daemon=True).start()
     threading.Thread(target=auto_clear, daemon=True).start()
-    print("Бот запущено з новим токеном...")
+    print("Бот запущено з оновленими назвами статусів...")
     bot.infinity_polling()
